@@ -578,13 +578,23 @@ function insLeftOfMeUnlessAtEnd(this: MQNode, cursor: Cursor) {
   // cursor.insLeftOf(cmd), unless cursor at the end of block, and every
   // ancestor cmd is at the end of every ancestor block
   var cmd = this.parent;
-  var ancestorCmd: MQNode | Anticursor | Cursor = cursor;
+  var ancestorCmd: MQNode | Cursor = cursor;
   do {
     if (ancestorCmd[R]) return cursor.insLeftOf(cmd);
     ancestorCmd = ancestorCmd.parent.parent;
   } while (ancestorCmd !== cmd);
-  cursor.insRightOf(cmd);
-  return undefined;
+  return cursor.insRightOf(cmd);
+}
+
+function insRightOfMeUnlessAtEnd(this: MQNode, cursor: Cursor) {
+  // analogous to insLeftOfMeUnlessAtEnd
+  var cmd = this.parent,
+    ancestorCmd: Cursor | MQNode = cursor;
+  do {
+    if (ancestorCmd[L]) return cursor.insRightOf(cmd);
+    ancestorCmd = ancestorCmd.parent.parent;
+  } while (ancestorCmd !== cmd);
+  return cursor.insLeftOf(cmd);
 }
 
 class SubscriptCommand extends SupSub {
@@ -814,6 +824,86 @@ LatexCmds['∫'] =
         MathCommand.prototype.createLeftOf.call(this, cursor);
       }
     };
+
+// Implements a "displaystyle" limit where the limit expression is
+// placed directly beneath the "lim" symbol instead of to its right
+LatexCmds.lim = class DisplayLimit extends MathCommand {
+  ctrlSeq = '\\lim';
+  ariaLabel = 'limit';
+  constructor() {
+    super();
+
+    var domView = new DOMView(1, (blocks) =>
+      h('span', { class: 'mq-limit mq-non-leaf' }, [
+        h('span', { class: 'mq-lim' }, [h.text('lim')]),
+        h('span', { class: 'mq-approaches' }, [h.block('span', {}, blocks[0])]),
+      ])
+    );
+
+    MQSymbol.prototype.setCtrlSeqHtmlTextAndMathspeak.call(
+      this,
+      this.ctrlSeq,
+      domView
+    );
+  }
+  createLeftOf(cursor: Cursor) {
+    super.createLeftOf(cursor);
+    if (cursor.options.limStartsWithArrow) {
+      const arrow = new To();
+      arrow.createLeftOf(cursor);
+      cursor.insLeftOf(arrow);
+    }
+  }
+  latexRecursive(ctx: LatexContext) {
+    this.checkCursorContextOpen(ctx);
+
+    ctx.latex += this.ctrlSeq + '_{';
+    let beforeLength = ctx.latex.length;
+    this.getEnd(L).latexRecursive(ctx);
+    let afterLength = ctx.latex.length;
+    if (afterLength === beforeLength) {
+      // nothing was written so we write a space
+      ctx.latex += ' ';
+    }
+
+    ctx.latex += '}';
+    this.checkCursorContextClose(ctx);
+  }
+  mathspeak() {
+    let out = this.ariaLabel + ' as ' + this.getEnd(L).mathspeak();
+    if (this[R]) out += ' of ';
+    return out;
+  }
+  parser() {
+    var string = Parser.string;
+    var optWhitespace = Parser.optWhitespace;
+    var succeed = Parser.succeed;
+    var block = latexMathParser.block;
+
+    var self = this,
+      child = new MathBlock();
+    var blocks = [child];
+    self.blocks = blocks;
+    child.adopt(self, 0, 0);
+
+    return optWhitespace
+      .then(string('_'))
+      .then(function (_sub) {
+        return block.then(function (block) {
+          block.children().adopt(child, child.getEnd(R), 0);
+          return succeed(self);
+        });
+      })
+      .many()
+      .result(self);
+  }
+  finalizeTree() {
+    this.downInto = this.ends[L];
+    this.ends[L].upOutOf = insRightOfMeUnlessAtEnd;
+    this.ends[L].ariaLabel = 'limit underscript';
+  }
+};
+
 var Fraction =
   (LatexCmds.frac =
   LatexCmds.dfrac =

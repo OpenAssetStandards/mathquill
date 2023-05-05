@@ -1048,6 +1048,31 @@ suite('Public API', function () {
     });
   });
 
+  suite('limStartsWithArrow', function () {
+    test('lim defaults to empty lim expression', function () {
+      var mq = MQ.MathField($('<span>').appendTo('#mock')[0]);
+      assert.equal(mq.latex(), '');
+
+      mq.cmd('\\lim');
+      assert.equal(mq.latex(), '\\lim_{ }');
+
+      mq.cmd('n');
+      assert.equal(mq.latex(), '\\lim_{n}', 'cursor in limit subscript');
+    });
+    test('limStartsWithArrow`', function () {
+      var mq = MQ.MathField($('<span>').appendTo('#mock')[0], {
+        limStartsWithArrow: true,
+      });
+      assert.equal(mq.latex(), '');
+
+      mq.cmd('\\lim');
+      assert.equal(mq.latex(), '\\lim_{\\to}');
+
+      mq.cmd('x');
+      assert.equal(mq.latex(), '\\lim_{x\\to}', 'cursor before `\\to`');
+    });
+  });
+
   suite('substituteTextarea', function () {
     test("doesn't blow up on selection", function () {
       var mq = MQ.MathField($('<span>').appendTo('#mock')[0], {

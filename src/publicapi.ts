@@ -95,6 +95,7 @@ class Options {
   typingSlashCreatesNewFraction?: boolean;
   charsThatBreakOutOfSupSub: string;
   sumStartsWithNEquals?: boolean;
+  limStartsWithArrow?: boolean;
   autoSubscriptNumerals?: boolean;
   supSubsRequireOperand?: boolean;
   spaceBehavesLikeTab?: boolean;

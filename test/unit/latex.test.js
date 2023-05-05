@@ -321,6 +321,24 @@ suite('latex', function () {
           assert.equal(mq.latex(), '\\sum_{ }^{5}x^{n}');
         });
       });
+      
+      suite('\\lim', function () {
+        test('empty', function () {
+          mq.latex('\\lim');
+          assert.equal(mq.latex(), '\\lim_{ }');
+
+          mq.keystroke('Left').typedText('x');
+          assert.equal(mq.latex(), '\\lim_{x}');
+        });
+
+        test('nonempty', function () {
+          mq.latex('\\lim_x');
+          assert.equal(mq.latex(), '\\lim_{x}');
+
+          mq.keystroke('Left').typedText('y');
+          assert.equal(mq.latex(), '\\lim_{xy}');
+        });
+      });
 
       suite('\\token', function () {
         test('parsing and serializing', function () {

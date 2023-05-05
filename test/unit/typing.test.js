@@ -1206,11 +1206,13 @@ suite('typing with auto-replaces', function () {
   suite('autoCommands', function () {
     var normalConfig = {
       autoOperatorNames: 'sin pp',
-      autoCommands: 'pi tau phi theta Gamma sum prod sqrt nthroot cbrt percent',
+      autoCommands:
+        'pi tau phi theta Gamma sum prod lim sqrt nthroot cbrt percent',
     };
     var subscriptConfig = {
       autoOperatorNames: 'sin pp',
-      autoCommands: 'pi tau phi theta Gamma sum prod sqrt nthroot cbrt percent',
+      autoCommands:
+        'pi tau phi theta Gamma sum prod lim sqrt nthroot cbrt percent',
       disableAutoSubstitutionInSubscripts: true,
     };
 
@@ -1227,6 +1229,15 @@ suite('typing with auto-replaces', function () {
       mq.typedText('prod');
       mq.typedText('n=0').keystroke('Up').typedText('100').keystroke('Right');
       assertLatex('\\prod_{n=0}^{100}');
+      mq.keystroke('Ctrl-Backspace');
+
+      mq.typedText('lim');
+      mq.typedText('x->y').keystroke('Right');
+      assertLatex('\\lim_{x\\to y}');
+      assertMathspeak('limit as "x" goes to "y"');
+      mq.typedText('x');
+      assertLatex('\\lim_{x\\to y}x');
+      assertMathspeak('limit as "x" goes to "y" of "x"');
       mq.keystroke('Ctrl-Backspace');
 
       mq.typedText('sqrt');
@@ -1313,7 +1324,7 @@ suite('typing with auto-replaces', function () {
 
     test('command is a built-in operator name', function () {
       var cmds = (
-        'Pr arg deg det dim exp gcd hom inf ker lg lim ln log max min sup' +
+        'Pr arg deg det dim exp gcd hom inf ker lg ln log max min sup' +
         ' limsup liminf injlim projlim Pr'
       ).split(' ');
       for (var i = 0; i < cmds.length; i += 1) {
@@ -1326,9 +1337,7 @@ suite('typing with auto-replaces', function () {
     test('built-in operator names even after auto-operator names overridden', function () {
       MQ.config({ autoOperatorNames: 'sin inf arcosh cosh cos cosec csc' });
       // ^ happen to be the ones required by autoOperatorNames.test.js
-      var cmds = 'Pr arg deg det exp gcd inf lg lim ln log max min sup'.split(
-        ' '
-      );
+      var cmds = 'Pr arg deg det exp gcd inf lg ln log max min sup'.split(' ');
       for (var i = 0; i < cmds.length; i += 1) {
         assert.throws(function () {
           MQ.config({ autoCommands: cmds[i] });
@@ -1452,30 +1461,30 @@ suite('typing with auto-replaces', function () {
       assertMathspeak('negative');
       mq.typedText('>');
       assertLatex('\\to');
-      assertMathspeak('to');
+      assertMathspeak('goes to');
       mq.typedText('-');
       assertLatex('\\to-');
-      assertMathspeak('to negative');
+      assertMathspeak('goes to negative');
       mq.typedText('>');
       assertLatex('\\to\\to');
-      assertMathspeak('to to');
+      assertMathspeak('goes to goes to');
       mq.keystroke('Backspace');
       assertLatex('\\to-');
-      assertMathspeak('to negative');
+      assertMathspeak('goes to negative');
       mq.keystroke('Backspace');
       assertLatex('\\to');
-      assertMathspeak('to');
+      assertMathspeak('goes to');
       mq.keystroke('Backspace');
       assertLatex('-');
       assertMathspeak('negative');
       mq.keystroke('Backspace');
       mq.typedText('a->b');
       assertLatex('a\\to b');
-      assertMathspeak('"a" to "b"');
+      assertMathspeak('"a" goes to "b"');
       mq.latex('');
       mq.typedText('a→b');
       assertLatex('a\\to b');
-      assertMathspeak('"a" to "b"');
+      assertMathspeak('"a" goes to "b"');
     });
 
     test('typing and backspacing ~', function () {
