@@ -321,7 +321,7 @@ suite('latex', function () {
           assert.equal(mq.latex(), '\\sum_{ }^{5}x^{n}');
         });
       });
-
+      
       suite('\\lim', function () {
         test('empty', function () {
           mq.latex('\\lim');
@@ -337,6 +337,13 @@ suite('latex', function () {
 
           mq.keystroke('Left').typedText('y');
           assert.equal(mq.latex(), '\\lim_{xy}');
+        });
+      });
+
+      suite('\\token', function () {
+        test('parsing and serializing', function () {
+          mq.latex('\\token{12}');
+          assert.equal(mq.latex(), '\\token{12}');
         });
       });
     });

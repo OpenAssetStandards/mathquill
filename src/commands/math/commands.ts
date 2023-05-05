@@ -412,9 +412,9 @@ class SupSub extends MathCommand {
     endsL.write = function (cursor: Cursor, ch: string) {
       if (
         cursor.options.autoSubscriptNumerals &&
-        this === (this.parent as SupSub).sub
+        this === (this.parent as SupSub).sub &&
+        '0123456789'.indexOf(ch) >= 0
       ) {
-        if (ch === '_') return;
         var cmd = this.chToCmd(ch, cursor.options);
         if (cmd instanceof MQSymbol) cursor.deleteSelection();
         else cursor.clearSelection().insRightOf(this.parent);
@@ -1084,6 +1084,80 @@ const PercentOfBuilder = () =>
     'percent of'
   );
 LatexCmds.percent = LatexCmds.percentof = PercentOfBuilder;
+
+/** A Token represents a region in typeset math that is designed to be
+ * externally styled and which delegates mousedown events to external
+ * handlers.
+ *
+ * LaTeX syntax: `\token{id}`.
+ *
+ * Token is designed for similar use cases as EmbedNode. Differences:
+ *     * Mousedown events on a Token are not handled by MathQuill (they
+ *       are expected to be handled externally).
+ *     * The API for Tokens is simpler: they don't require registering
+ *       handlers with MathQuill.
+ *     * The current syntax for embed (`\embed{name}[id]`) gets the order
+ *       of optional and required arguments backwards compared to normal
+ *       LaTeX syntax. The syntax of Token is simpler and more in line
+ *       with LaTeX
+ */
+class Token extends MQSymbol {
+  tokenId = '';
+  ctrlSeq = '\\token';
+  textTemplate = ['token(', ')'];
+  mathspeakTemplate = ['StartToken,', ', EndToken'];
+  ariaLabel = 'token';
+
+  html(): Element | DocumentFragment {
+    const out = h('span', {
+      class: 'mq-token mq-ignore-mousedown',
+      'data-mq-token': this.tokenId,
+    });
+    this.setDOM(out);
+    NodeBase.linkElementByCmdNode(out, this);
+    return out;
+  }
+
+  latexRecursive(ctx: LatexContext): void {
+    this.checkCursorContextOpen(ctx);
+
+    ctx.latex += '\\token{' + this.tokenId + '}';
+
+    this.checkCursorContextClose(ctx);
+  }
+
+  mathspeak() {
+    // If the caller responsible for creating this token has set an aria-label attribute for the inner children, use them in the mathspeak calculation.
+    let ariaLabelArray: string[] = [];
+
+    this.domFrag()
+      .children()
+      .eachElement((el) => {
+        const label = el.getAttribute('aria-label');
+        if (typeof label === 'string' && label !== '')
+          ariaLabelArray.push(label);
+      });
+    return ariaLabelArray.length > 0
+      ? ariaLabelArray.join(' ').trim()
+      : 'token ' + this.tokenId;
+  }
+
+  parser() {
+    var self = this;
+    return latexMathParser.block.map(function (block) {
+      var digit = block.getEnd(L);
+      if (digit) {
+        self.tokenId += (digit as Digit).ctrlSeq;
+        while ((digit = digit[R])) {
+          self.tokenId += (digit as Digit).ctrlSeq;
+        }
+      }
+
+      return self;
+    });
+  }
+}
+LatexCmds.token = Token;
 
 class SquareRoot extends MathCommand {
   ctrlSeq = '\\sqrt';
